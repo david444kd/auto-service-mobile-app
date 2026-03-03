@@ -4,8 +4,7 @@ import { Alert, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { useSignOut } from "@/entities/auth";
-import { useCurrentUser } from "@/shared/stores";
-import { useProfileStore } from "@/shared/stores";
+import { useCurrentUser, useProfileStore } from "@/shared/stores";
 import { Button, Input, Text } from "@/shared/ui";
 
 const profileSchema = z.object({

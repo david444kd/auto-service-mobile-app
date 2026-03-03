@@ -13,6 +13,3 @@ export function AppProviders({ children }: AppProvidersProps) {
     </QueryProvider>
   );
 }
-
-export { AuthProvider } from './AuthProvider';
-export { QueryProvider, queryClient } from './QueryProvider';

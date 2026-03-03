@@ -1,1 +1,1 @@
-export { type Env, env } from './env';
+export { env } from './env';
