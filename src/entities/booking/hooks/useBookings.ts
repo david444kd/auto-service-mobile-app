@@ -1,20 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '@/shared/stores';
 import { bookingApi } from '../api/bookingApi';
 import { bookingKeys } from '../api/bookingKeys';
 import type { CreateBookingParams } from '../model/types';
 
 export function useBookings() {
+  const user = useCurrentUser();
+
   return useQuery({
     queryKey: bookingKeys.lists(),
-    queryFn: () => bookingApi.getAll(),
+    queryFn: () => bookingApi.getAll(user!.uid),
+    enabled: !!user,
   });
 }
 
 export function useCreateBooking() {
   const queryClient = useQueryClient();
+  const user = useCurrentUser();
 
   return useMutation({
-    mutationFn: (params: CreateBookingParams) => bookingApi.create(params),
+    mutationFn: (params: CreateBookingParams) => bookingApi.create(params, user!.uid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     },

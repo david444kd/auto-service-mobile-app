@@ -2,12 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Alert, RefreshControl, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCreateBooking } from "@/entities/booking";
 import type { CreateBookingParams } from "@/entities/booking";
 import { createBookingSchema } from "@/entities/booking";
-import { useServices } from "@/entities/service";
+import { serviceKeys, useServices } from "@/entities/service";
 import { useTimeSlots } from "@/entities/time-slot";
 import { useProfileStore } from "@/shared/stores";
 import { Button, Input, Text } from "@/shared/ui";
@@ -20,16 +21,15 @@ function getTodayDate(): string {
 }
 
 export function BookingForm() {
-  const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
   const profile = useProfileStore();
 
   const { data: services = [], isLoading: servicesLoading } = useServices();
 
-  const activeServiceId = selectedServiceId;
-
-  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(activeServiceId, selectedDate);
+  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(selectedServiceId, selectedDate);
 
   const createBooking = useCreateBooking();
 
@@ -38,6 +38,7 @@ export function BookingForm() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isValid },
   } = useForm<CreateBookingParams>({
     resolver: zodResolver(createBookingSchema),
@@ -58,6 +59,27 @@ export function BookingForm() {
   });
 
   const selectedSlot = watch("scheduledAt");
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    reset({
+      serviceId: "",
+      service: { id: "", name: "", emoji: "" },
+      scheduledAt: "",
+      car: {
+        make: profile.carMake,
+        year: profile.carYear,
+        plateNumber: profile.carPlateNumber,
+      },
+      customerName: profile.name,
+      customerPhone: profile.phone,
+      comment: "",
+    });
+    setSelectedServiceId("");
+    setSelectedDate(getTodayDate());
+    await queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
+    setRefreshing(false);
+  };
 
   const handleServiceSelect = (s: { id: string; name: string; emoji: string }) => {
     setSelectedServiceId(s.id);
@@ -81,9 +103,13 @@ export function BookingForm() {
   };
 
   return (
+    <SafeAreaView className="flex-1 bg-[#0e0f12]">
     <ScrollView
-      className="flex-1 bg-[#0e0f12]"
-      contentContainerStyle={{ padding: 16, gap: 20, paddingTop: insets.top + 16 }}
+      className="flex-1"
+      contentContainerStyle={{ padding: 16, gap: 20, paddingTop: 8 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f59e0b" />
+      }
     >
       {/* Услуга */}
       <View className="gap-3">
@@ -92,7 +118,7 @@ export function BookingForm() {
         </Text>
         <ServicePicker
           services={services}
-          selectedServiceId={activeServiceId}
+          selectedServiceId={selectedServiceId}
           isLoading={servicesLoading}
           onSelect={(s) => handleServiceSelect(s)}
         />
@@ -248,5 +274,6 @@ export function BookingForm() {
 
       <View className="h-8" />
     </ScrollView>
+    </SafeAreaView>
   );
 }

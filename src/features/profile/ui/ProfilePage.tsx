@@ -8,11 +8,11 @@ import { useCurrentUser, useProfileStore } from "@/shared/stores";
 import { Button, Input, Text } from "@/shared/ui";
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Минимум 2 символа"),
-  phone: z.string().min(10, "Введите корректный номер"),
-  carMake: z.string().min(1, "Укажите марку и модель"),
-  carYear: z.number().int().min(1900).max(new Date().getFullYear() + 1),
-  carPlateNumber: z.string().min(1, "Укажите гос. номер"),
+  name: z.string().min(2, "Минимум 2 символа").or(z.literal("")),
+  phone: z.string().min(10, "Введите корректный номер").or(z.literal("")),
+  carMake: z.string(),
+  carYear: z.number().int().min(1900).max(new Date().getFullYear() + 1).optional(),
+  carPlateNumber: z.string(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -26,7 +26,7 @@ export function ProfilePage() {
   const {
     control,
     handleSubmit,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name, phone, carMake, carYear, carPlateNumber },
@@ -130,7 +130,7 @@ export function ProfilePage() {
               label="Год выпуска"
               placeholder="2020"
               value={value ? String(value) : ""}
-              onChangeText={(v) => onChange(v ? Number.parseInt(v, 10) : 0)}
+              onChangeText={(v) => onChange(v ? Number.parseInt(v, 10) : undefined)}
               onBlur={onBlur}
               keyboardType="numeric"
               error={errors.carYear?.message}
@@ -155,7 +155,7 @@ export function ProfilePage() {
         />
       </View>
 
-      <Button variant="primary" fullWidth onPress={handleSubmit(onSave)} disabled={!isDirty}>
+      <Button variant="primary" fullWidth onPress={handleSubmit(onSave)}>
         Сохранить
       </Button>
 

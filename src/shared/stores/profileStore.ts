@@ -6,7 +6,7 @@ interface ProfileState {
   name: string;
   phone: string;
   carMake: string;
-  carYear: number;
+  carYear: number | undefined;
   carPlateNumber: string;
   setProfile: (data: Partial<Omit<ProfileState, 'setProfile'>>) => void;
 }
@@ -17,7 +17,7 @@ export const useProfileStore = create<ProfileState>()(
       name: '',
       phone: '',
       carMake: '',
-      carYear: new Date().getFullYear(),
+      carYear: undefined,
       carPlateNumber: '',
       setProfile: (data) => set((state) => ({ ...state, ...data })),
     }),

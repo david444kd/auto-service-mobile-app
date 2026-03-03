@@ -9,16 +9,14 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db, firebaseAuth } from "@/shared/lib";
+import { db } from "@/shared/lib";
 import type { Booking, BookingList, CreateBookingParams } from "../model/types";
 
 const COLLECTION = "bookings";
 
 export const bookingApi = {
-  getAll: async (): Promise<BookingList> => {
-    const col = collection(db, COLLECTION);
-    const uid = firebaseAuth.currentUser?.uid;
-    const q = uid ? query(col, where("userId", "==", uid)) : query(col);
+  getAll: async (uid: string): Promise<BookingList> => {
+    const q = query(collection(db, COLLECTION), where("userId", "==", uid));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Booking);
   },
@@ -32,10 +30,10 @@ export const bookingApi = {
     return { id: snapshot.id, ...snapshot.data() } as Booking;
   },
 
-  create: async (params: CreateBookingParams): Promise<Booking> => {
+  create: async (params: CreateBookingParams, uid: string): Promise<Booking> => {
     const docRef = await addDoc(collection(db, COLLECTION), {
       ...params,
-      userId: firebaseAuth.currentUser?.uid,
+      userId: uid,
       status: "pending",
       createdAt: serverTimestamp(),
     });
