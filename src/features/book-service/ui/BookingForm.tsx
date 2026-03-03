@@ -1,28 +1,36 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Alert, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCreateBooking } from '@/entities/booking';
-import type { CreateBookingParams } from '@/entities/booking';
-import { createBookingSchema } from '@/entities/booking';
-import { MOCK_SERVICES } from '@/entities/service';
-import { useTimeSlots } from '@/entities/time-slot';
-import { Button, Input, Text } from '@/shared/ui';
-import { DateSelector } from './DateSelector';
-import { ServicePicker } from './ServicePicker';
-import { TimeSlotGrid } from './TimeSlotGrid';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Alert, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCreateBooking } from "@/entities/booking";
+import type { CreateBookingParams } from "@/entities/booking";
+import { createBookingSchema } from "@/entities/booking";
+import { useServices } from "@/entities/service";
+import { useTimeSlots } from "@/entities/time-slot";
+import { useProfileStore } from "@/shared/stores";
+import { Button, Input, Text } from "@/shared/ui";
+import { DateSelector } from "./DateSelector";
+import { ServicePicker } from "./ServicePicker";
+import { TimeSlotGrid } from "./TimeSlotGrid";
 
 function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split("T")[0];
 }
 
 export function BookingForm() {
   const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
-  const [selectedServiceId, setSelectedServiceId] = useState(MOCK_SERVICES[0].id);
-  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(selectedServiceId, selectedDate);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const profile = useProfileStore();
+
+  const { data: services = [], isLoading: servicesLoading } = useServices();
+
+  const activeServiceId = selectedServiceId;
+
+  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(activeServiceId, selectedDate);
+
   const createBooking = useCreateBooking();
 
   const {
@@ -34,35 +42,41 @@ export function BookingForm() {
   } = useForm<CreateBookingParams>({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
-      serviceId: MOCK_SERVICES[0].id,
-      scheduledAt: '',
-      car: { make: '', year: new Date().getFullYear(), plateNumber: '' },
-      customerName: '',
-      customerPhone: '',
-      comment: '',
+      serviceId: "",
+      service: { id: "", name: "", emoji: "" },
+      scheduledAt: "",
+      car: {
+        make: profile.carMake,
+        year: profile.carYear,
+        plateNumber: profile.carPlateNumber,
+      },
+      customerName: profile.name,
+      customerPhone: profile.phone,
+      comment: "",
     },
-    mode: 'onChange',
+    mode: "onChange",
   });
 
-  const selectedSlot = watch('scheduledAt');
+  const selectedSlot = watch("scheduledAt");
 
-  const handleServiceSelect = (serviceId: string) => {
-    setSelectedServiceId(serviceId);
-    setValue('serviceId', serviceId, { shouldValidate: true });
-    setValue('scheduledAt', '');
+  const handleServiceSelect = (s: { id: string; name: string; emoji: string }) => {
+    setSelectedServiceId(s.id);
+    setValue("serviceId", s.id, { shouldValidate: true });
+    setValue("service", { id: s.id, name: s.name, emoji: s.emoji }, { shouldValidate: true });
+    setValue("scheduledAt", "");
   };
 
   const onSubmit = async (data: CreateBookingParams) => {
     try {
       await createBooking.mutateAsync(data);
-      Alert.alert('Успех', 'Запись создана!', [
+      Alert.alert("Успех", "Запись создана!", [
         {
-          text: 'OK',
-          onPress: () => router.replace('/(tabs)/bookings'),
+          text: "OK",
+          onPress: () => router.replace("/(tabs)/bookings"),
         },
       ]);
     } catch {
-      Alert.alert('Ошибка', 'Не удалось создать запись. Попробуйте ещё раз.');
+      Alert.alert("Ошибка", "Не удалось создать запись. Попробуйте ещё раз.");
     }
   };
 
@@ -77,9 +91,10 @@ export function BookingForm() {
           Услуга
         </Text>
         <ServicePicker
-          services={MOCK_SERVICES}
-          selectedServiceId={selectedServiceId}
-          onSelect={(s) => handleServiceSelect(s.id)}
+          services={services}
+          selectedServiceId={activeServiceId}
+          isLoading={servicesLoading}
+          onSelect={(s) => handleServiceSelect(s)}
         />
       </View>
 
@@ -92,13 +107,15 @@ export function BookingForm() {
           selectedDate={selectedDate}
           onDateChange={(date) => {
             setSelectedDate(date);
-            setValue('scheduledAt', '');
+            setValue("scheduledAt", "");
           }}
         />
         <TimeSlotGrid
           slots={slots}
           selectedSlot={selectedSlot}
-          onSlotSelect={(slot) => setValue('scheduledAt', slot.scheduledAt, { shouldValidate: true })}
+          onSlotSelect={(slot) =>
+            setValue("scheduledAt", slot.scheduledAt, { shouldValidate: true })
+          }
           isLoading={slotsLoading}
         />
         {errors.scheduledAt && (
@@ -136,7 +153,7 @@ export function BookingForm() {
             <Input
               label="Год выпуска"
               placeholder="2020"
-              value={value ? String(value) : ''}
+              value={value ? String(value) : ""}
               onChangeText={(v) => onChange(v ? Number.parseInt(v, 10) : 0)}
               onBlur={onBlur}
               keyboardType="numeric"
@@ -213,7 +230,7 @@ export function BookingForm() {
             onBlur={onBlur}
             multiline
             numberOfLines={3}
-            style={{ height: 80, textAlignVertical: 'top' }}
+            style={{ height: 80, textAlignVertical: "top" }}
           />
         )}
       />
@@ -226,7 +243,7 @@ export function BookingForm() {
         onPress={handleSubmit(onSubmit)}
         disabled={!isValid || createBooking.isPending}
       >
-        {createBooking.isPending ? 'Записываемся...' : 'Записаться'}
+        {createBooking.isPending ? "Записываемся..." : "Записаться"}
       </Button>
 
       <View className="h-8" />

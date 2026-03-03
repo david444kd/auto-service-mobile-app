@@ -40,10 +40,14 @@ export function BookingCard({ booking, variant = 'past', onCancel }: BookingCard
         </View>
 
         <View className="flex-row items-center gap-2">
-          <Text className="text-xl">{booking.service.emoji}</Text>
-          <Text variant="body" weight="semibold">
-            {booking.service.name}
-          </Text>
+          {booking.service && (
+            <>
+              <Text className="text-xl">{booking.service.emoji}</Text>
+              <Text variant="body" weight="semibold">
+                {booking.service.name}
+              </Text>
+            </>
+          )}
         </View>
 
         <Text variant="label" color="secondary">

@@ -21,7 +21,7 @@ export const bookingSchema = z.object({
     id: z.string(),
     name: z.string(),
     emoji: z.string(),
-  }),
+  }).optional(),
   status: bookingStatusSchema,
   scheduledAt: z.string(),
   car: carSchema,
@@ -33,6 +33,11 @@ export const bookingSchema = z.object({
 
 export const createBookingSchema = z.object({
   serviceId: z.string().min(1),
+  service: z.object({
+    id: z.string(),
+    name: z.string(),
+    emoji: z.string(),
+  }),
   scheduledAt: z.string().min(1, 'Выберите дату и время'),
   car: carSchema,
   customerName: z.string().min(2, 'Введите имя'),

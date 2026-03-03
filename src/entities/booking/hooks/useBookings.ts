@@ -3,10 +3,10 @@ import { bookingApi } from '../api/bookingApi';
 import { bookingKeys } from '../api/bookingKeys';
 import type { CreateBookingParams } from '../model/types';
 
-export function useBookings(phone?: string) {
+export function useBookings() {
   return useQuery({
-    queryKey: phone ? bookingKeys.listByPhone(phone) : bookingKeys.lists(),
-    queryFn: () => bookingApi.getAll(phone),
+    queryKey: bookingKeys.lists(),
+    queryFn: () => bookingApi.getAll(),
   });
 }
 

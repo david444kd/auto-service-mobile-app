@@ -82,10 +82,35 @@ Each entity/feature/widget follows:
 
 ### Environment
 
-Configure via `.env.local` (see `.env.example`). Accessed through `src/shared/config/env.ts`:
+Configure via `.env.local` (see `.env.example`). Accessed through `src/shared/config/env.ts`. All vars are prefixed `EXPO_PUBLIC_`:
 - `API_URL` — defaults to `https://api.example.com`
 - `API_TIMEOUT` — defaults to `10000`
 - `APP_ENV` — `development` | `staging` | `production`
+- `DEBUG` — `false` by default
+- `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID` — required for Firebase
+- `GOOGLE_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` — for Google OAuth via `expo-auth-session`
+
+### Firebase & Auth
+
+Firebase SDK (`firebase/app`, `firebase/auth`, `firebase/firestore`) is initialized in `src/shared/lib/firebase/`. The singleton `firebaseApp` guards against double-initialization.
+
+Auth state is managed by `AuthProvider` (`src/core/providers/AuthProvider.tsx`) which subscribes to `onAuthStateChanged` and writes to `useAuthStore` (Zustand, in `src/shared/stores/authStore.ts`). Read auth state with the pre-built selectors:
+```typescript
+import { useCurrentUser, useAuthLoading } from '@/shared/stores';
+```
+
+Auth operations (sign-in, sign-up, sign-out) live in `src/entities/auth/api/authApi.ts` and call Firebase directly — no Axios involved.
+
+### Navigation Groups
+
+```
+app/
+├── (auth)/       # Unauthenticated screens: login, register
+├── (tabs)/       # Main tab group (protected)
+└── _layout.tsx   # Root Stack with AuthProvider
+```
+
+Route guarding is handled at the root layout level based on `useCurrentUser()` / `useAuthLoading()` from the auth store.
 
 ### Biome Style Rules
 

@@ -1,0 +1,20 @@
+import { z } from "zod";
+
+export const loginSchema = z.object({
+  email: z.string().email("Введите корректный email"),
+  password: z.string().min(6, "Минимум 6 символов"),
+});
+
+export const registerSchema = loginSchema.extend({
+  name: z.string().min(2, "Минимум 2 символа"),
+});
+
+export type LoginFormValues = z.infer<typeof loginSchema>;
+export type RegisterFormValues = z.infer<typeof registerSchema>;
+
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}

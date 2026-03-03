@@ -6,3 +6,5 @@ export {
   useToasts,
   useUIStore,
 } from './uiStore';
+export { useAuthLoading, useAuthStore, useCurrentUser } from './authStore';
+export { useProfileStore } from './profileStore';

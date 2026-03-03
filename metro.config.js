@@ -20,4 +20,8 @@ config.resolver.extraNodeModules = {
 // Ensure node_modules resolution works
 config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
 
+// Enable react-native export condition so packages like @firebase/auth
+// resolve to their React Native bundles (which include getReactNativePersistence)
+config.resolver.unstable_conditionNames = ['react-native', 'require', 'default'];
+
 module.exports = withNativeWind(config, { input: './global.css' });

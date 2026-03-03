@@ -1,56 +1,52 @@
-import { apiClient } from '@/shared/api';
-import type { Booking, BookingList, CreateBookingParams } from '../model/types';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { db, firebaseAuth } from "@/shared/lib";
+import type { Booking, BookingList, CreateBookingParams } from "../model/types";
 
-const ENDPOINT = '/bookings';
-
-const MOCK_BOOKINGS: BookingList = [
-  {
-    id: 'mock-1',
-    serviceId: '1',
-    service: { id: '1', name: 'Замена масла', emoji: '🔧' },
-    status: 'confirmed',
-    scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    car: { make: 'Toyota Camry', year: 2020, plateNumber: 'А123ВС77' },
-    customerName: 'Иван Иванов',
-    customerPhone: '+79991234567',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'mock-2',
-    serviceId: '3',
-    service: { id: '3', name: 'Шиномонтаж', emoji: '🔩' },
-    status: 'completed',
-    scheduledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    car: { make: 'Toyota Camry', year: 2020, plateNumber: 'А123ВС77' },
-    customerName: 'Иван Иванов',
-    customerPhone: '+79991234567',
-    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+const COLLECTION = "bookings";
 
 export const bookingApi = {
-  getAll: async (phone?: string): Promise<BookingList> => {
-    return MOCK_BOOKINGS;
-    const { data } = await apiClient.get<BookingList>(ENDPOINT, {
-      params: phone ? { phone } : undefined,
-    });
-    return data;
+  getAll: async (): Promise<BookingList> => {
+    const col = collection(db, COLLECTION);
+    const uid = firebaseAuth.currentUser?.uid;
+    const q = uid ? query(col, where("userId", "==", uid)) : query(col);
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Booking);
   },
 
   getById: async (id: string): Promise<Booking> => {
-    const { data } = await apiClient.get<Booking>(`${ENDPOINT}/${id}`);
-    return data;
+    const ref = doc(db, COLLECTION, id);
+    const snapshot = await getDoc(ref);
+    if (!snapshot.exists()) {
+      throw new Error(`Booking ${id} not found`);
+    }
+    return { id: snapshot.id, ...snapshot.data() } as Booking;
   },
 
   create: async (params: CreateBookingParams): Promise<Booking> => {
-    const { data } = await apiClient.post<Booking>(ENDPOINT, params);
-    return data;
+    const docRef = await addDoc(collection(db, COLLECTION), {
+      ...params,
+      userId: firebaseAuth.currentUser?.uid,
+      status: "pending",
+      createdAt: serverTimestamp(),
+    });
+    const snapshot = await getDoc(docRef);
+    return { id: snapshot.id, ...snapshot.data() } as Booking;
   },
 
   cancel: async (id: string): Promise<Booking> => {
-    const { data } = await apiClient.patch<Booking>(`${ENDPOINT}/${id}`, {
-      status: 'cancelled',
-    });
-    return data;
+    const ref = doc(db, COLLECTION, id);
+    await updateDoc(ref, { status: "cancelled" });
+    const snapshot = await getDoc(ref);
+    return { id: snapshot.id, ...snapshot.data() } as Booking;
   },
 };
